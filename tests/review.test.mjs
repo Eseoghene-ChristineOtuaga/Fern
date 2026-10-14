@@ -50,3 +50,18 @@ test('winning to still winning is less damaging than equal to losing',()=>{
  const swing=reviewMove(pos('w',0,'d2d4'),pos('b',300),move);
  assert.ok(swing.loss>safe.loss);
 });
+
+test('uses Stockfish WDL expected score when available',()=>{
+ const before={turn:'w',result:{type:'cp',value:0,wdl:[400,400,200],bestMove:'d2d4',depth:12}};
+ const after={turn:'b',result:{type:'cp',value:0,wdl:[500,300,200],depth:12}};
+ const r=reviewMove(before,after,move);
+ // Before: White 0.600. After is Black-to-move 0.650, hence White 0.350.
+ assert.ok(Math.abs(r.loss-0.25)<1e-12);
+ assert.equal(r.model,'stockfish-wdl-v1');
+ assert.equal(r.label,'Blunder');
+});
+test('WDL normalization is symmetric across side to move',()=>{
+ const white={turn:'w',result:{type:'cp',value:0,wdl:[600,300,100]}};
+ const black={turn:'b',result:{type:'cp',value:0,wdl:[100,300,600]}};
+ assert.equal(scoreForPlayer(white,'w'),scoreForPlayer(black,'w'));
+});
