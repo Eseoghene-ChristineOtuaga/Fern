@@ -33,7 +33,7 @@ export function createEngine() {
         worker.onmessage = ({ data }) => {
           const lines = String(data).split(/\r?\n/);
           for (const line of lines) {
-            if (line === 'uciok') send('isready');
+            if (line === 'uciok') { send('setoption name UCI_ShowWDL value true'); send('isready'); }
             if (line === 'readyok' && timer) { clearTimeout(timer); timer = null; resolve(); }
             if (!pending) continue;
             if (line.startsWith('info ') && /\bscore (cp|mate) -?\d+/.test(line)) {
@@ -41,7 +41,8 @@ export function createEngine() {
               const kind = line.match(/\bscore (cp|mate) (-?\d+)/);
               const pv = line.match(/\bpv (.+)$/);
               if (kind && !/\b(lowerbound|upperbound)\b/.test(line) && depth >= (latestInfo?.depth ?? 0)) {
-                latestInfo = { depth, type: kind[1], value: Number(kind[2]), bestLine: pv?.[1]?.trim().split(/\s+/) || [] };
+                const wdlMatch = line.match(/\bwdl (\d+) (\d+) (\d+)/);
+                latestInfo = { depth, type: kind[1], value: Number(kind[2]), wdl: wdlMatch ? wdlMatch.slice(1).map(Number) : null, bestLine: pv?.[1]?.trim().split(/\s+/) || [] };
               }
             }
             if (line.startsWith('bestmove ')) {
