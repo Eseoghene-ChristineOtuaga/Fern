@@ -20,9 +20,14 @@ jobs:
         run: npm test
       - name: Production build
         run: npm run build
-      - name: Run Stockfish depth benchmark
-        run: |
-          STOCKFISH_BIN=$(find node_modules/stockfish -type f -name 'stockfish-*-single' | head -1)
-          if [ -z "$STOCKFISH_BIN" ]; then echo 'Native Stockfish binary not bundled; benchmark deferred.'; exit 0; fi
-          chmod +x "$STOCKFISH_BIN"
-          STOCKFISH_BIN="$STOCKFISH_BIN" node tests/stockfish-bench.mjs
+      - name: Install native Stockfish reference engine
+        run: sudo apt-get update -qq && sudo apt-get install -y stockfish
+      - name: Run native reference depth benchmark
+        env:
+          STOCKFISH_BIN: /usr/games/stockfish
+        run: node tests/stockfish-bench.mjs | tee stockfish-depth-results.jsonl
+      - name: Upload reference benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-stockfish-depth-results
+          path: stockfish-depth-results.jsonl
