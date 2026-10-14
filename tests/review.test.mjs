@@ -9,7 +9,7 @@ test('normalizes evaluation from side-to-move perspective',()=>{
  assert.ok(scoreForPlayer(pos('b',200),'w') < 0.3);
 });
 test('identifies engine first-choice move',()=>{
- assert.equal(reviewMove(pos('w',40),pos('b',-40),move).label,'Best / excellent');
+ assert.equal(reviewMove(pos('w',40),pos('b',-40),move).label,'Best');
 });
 test('flags large loss and supplies honest explanation',()=>{
  const r=reviewMove(pos('w',250,'d2d4'),pos('b',300),move);
@@ -36,4 +36,16 @@ test('retains the full principal variation and marks grades as provisional',()=>
 });
 test('does not grade moves when engine evidence is missing',()=>{
  assert.equal(reviewMove(pos('w',50),{turn:'b',result:null},move),null);
+});
+
+test('win-chance curve is symmetric and treats equal positions as 50%',()=>{
+ assert.equal(scoreForPlayer(pos('w',0),'w'),0.5);
+ const plus=scoreForPlayer(pos('w',300),'w');
+ const minus=scoreForPlayer(pos('w',-300),'w');
+ assert.ok(Math.abs(plus+minus-1)<1e-10);
+});
+test('winning to still winning is less damaging than equal to losing',()=>{
+ const safe=reviewMove(pos('w',900,'d2d4'),pos('b',-600),move);
+ const swing=reviewMove(pos('w',0,'d2d4'),pos('b',300),move);
+ assert.ok(swing.loss>safe.loss);
 });
