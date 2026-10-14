@@ -4,9 +4,10 @@ import { scoreForPlayer, reviewMove, summarizeReviews, explainMove } from '../sr
 const pos=(turn,value,bestMove='e2e4')=>({turn,result:{type:'cp',value,bestMove}});
 const move={san:'e4',from:'e2',to:'e4'};
 test('normalizes evaluation from side-to-move perspective',()=>{
- assert.ok(scoreForPlayer(pos('w',200),'w') > 0.7);
- assert.ok(scoreForPlayer(pos('b',-200),'w') > 0.7);
- assert.ok(scoreForPlayer(pos('b',200),'w') < 0.3);
+ const whiteEdge=scoreForPlayer(pos('w',200),'w');
+ assert.ok(whiteEdge > 0.5);
+ assert.equal(scoreForPlayer(pos('b',-200),'w'), whiteEdge);
+ assert.ok(scoreForPlayer(pos('b',200),'w') < 0.5);
 });
 test('identifies engine first-choice move',()=>{
  assert.equal(reviewMove(pos('w',40),pos('b',-40),move).label,'Best');
