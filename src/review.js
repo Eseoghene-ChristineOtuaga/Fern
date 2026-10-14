@@ -22,13 +22,15 @@ export function reviewMove(before, after, move) {
   const loss = Math.max(0, best - played);
   const uci = `${move.from}${move.to}${move.promotion || ''}`;
   const isBest = before.result?.bestMove === uci;
+  const bestLine = Array.isArray(before.result?.bestLine) ? before.result.bestLine : [];
+  const searchDepth = Math.min(before.result?.depth ?? 0, after.result?.depth ?? before.result?.depth ?? 0);
   let label;
   if (isBest || loss < 0.035) label = 'Best / excellent';
   else if (loss < 0.085) label = 'Good';
   else if (loss < 0.17) label = 'Inaccuracy';
   else if (loss < 0.30) label = 'Mistake';
   else label = 'Blunder';
-  return { label, loss, bestMove: before.result?.bestMove || null, isBest, played: move.san, player };
+  return { label, loss, bestMove: before.result?.bestMove || null, bestLine, searchDepth, isBest, played: move.san, player, provisional: true };
 }
 export function summarizeReviews(reviews) {
   const valid = reviews.filter(Boolean);
