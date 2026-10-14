@@ -1,0 +1,22 @@
+name: Fern checks
+on:
+  push:
+    branches: [feat/pgn-review-foundation, main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate FEN fixtures and move legality
+        run: node tests/validate-positions.mjs
+      - name: Unit and interpretation benchmarks
+        run: npm test
+      - name: Production build
+        run: npm run build
