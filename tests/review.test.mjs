@@ -25,3 +25,15 @@ test('summarizes grades',()=>{
  const a=reviewMove(pos('w',250,'d2d4'),pos('b',300),move);
  assert.equal(summarizeReviews([a,null]).counts.Blunder,1);
 });
+
+test('retains the full principal variation and marks grades as provisional',()=>{
+ const before={turn:'w',result:{type:'cp',value:60,bestMove:'d2d4',bestLine:['d2d4','d7d5','c2c4'],depth:14}};
+ const after={turn:'b',result:{type:'cp',value:-30,bestMove:'d7d5',depth:12}};
+ const r=reviewMove(before,after,move);
+ assert.deepEqual(r.bestLine,['d2d4','d7d5','c2c4']);
+ assert.equal(r.searchDepth,12);
+ assert.equal(r.provisional,true);
+});
+test('does not grade moves when engine evidence is missing',()=>{
+ assert.equal(reviewMove(pos('w',50),{turn:'b',result:null},move),null);
+});
