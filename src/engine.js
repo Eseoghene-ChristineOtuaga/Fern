@@ -39,15 +39,15 @@ export function createEngine() {
             if (line.startsWith('info ') && /\bscore (cp|mate) -?\d+/.test(line)) {
               const depth = Number(line.match(/\bdepth (\d+)/)?.[1] || 0);
               const kind = line.match(/\bscore (cp|mate) (-?\d+)/);
-              const pv = line.match(/\bpv ([a-h][1-8][a-h][1-8][qrbn]?)/);
-              if (kind && depth >= (latestInfo?.depth ?? 0)) {
-                latestInfo = { depth, type: kind[1], value: Number(kind[2]), bestLine: pv?.[1] || null };
+              const pv = line.match(/\bpv (.+)$/);
+              if (kind && !/\b(lowerbound|upperbound)\b/.test(line) && depth >= (latestInfo?.depth ?? 0)) {
+                latestInfo = { depth, type: kind[1], value: Number(kind[2]), bestLine: pv?.[1]?.trim().split(/\s+/) || [] };
               }
             }
             if (line.startsWith('bestmove ')) {
               const move = line.split(' ')[1];
-              const result = { ...latestInfo, bestMove: move && move !== '(none)' ? move : null };
-              pending.resolve(result);
+              const result = latestInfo ? { ...latestInfo, bestMove: move && move !== '(none)' ? move : null } : null;
+              if (result) pending.resolve(result); else pending.reject(new Error('Stockfish returned no usable evaluation.'));
               cleanup();
             }
           }
