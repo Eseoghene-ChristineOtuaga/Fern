@@ -6,7 +6,7 @@ A calm, green chess study app. Paste or upload a PGN, replay moves on a board, a
 
 ```bash
 npm install
-npm run dev
+npm run dev\n# In a second terminal, run tests:\nnpm test
 ```
 
 ## Current milestone
@@ -16,7 +16,7 @@ npm run dev
 - Local saved-game library
 - Responsive interface
 
-**Now included:** Stockfish 19 Lite single-threaded WASM position evaluations, suggested moves and depth-10 whole-game analysis. The engine runs locally in a browser Web Worker.\n\n**Not implemented yet:** reliable move-quality classification, AI explanations, Supabase sync. Position evaluations are not automatically move grades. The interface deliberately does not claim that moves have been analysed.
+**Now included:** Stockfish 19 Lite single-threaded WASM position evaluations, suggested moves and depth-10 whole-game analysis. The engine runs locally in a browser Web Worker.\n\n**Now included:** approximate move-quality labels, a summary of reviewed moves, moments to revisit and transparent rule-based explanations. These are heuristic estimates, not verified tactical explanations.\n\n**Not implemented yet:** optional LLM coaching, multi-game patterns, Supabase sync. No API keys are required for the current core app. The interface deliberately does not claim that moves have been analysed.
 
 ## Next milestone
 
