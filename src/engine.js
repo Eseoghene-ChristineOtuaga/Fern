@@ -1,4 +1,6 @@
-import { Chess } from 'chess.js';\n\n// A single-threaded Stockfish 19 WASM worker, running locally in the browser.
+import { Chess } from 'chess.js';
+
+// A single-threaded Stockfish 19 WASM worker, running locally in the browser.
 // Only one UCI search may be active at a time. Do not mix responses from searches.
 const ENGINE_PATH = `${import.meta.env.BASE_URL}engine/stockfish-19-lite-single.js`;
 
