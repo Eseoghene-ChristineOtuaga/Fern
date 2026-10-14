@@ -16,8 +16,8 @@ npm run dev
 - Local saved-game library
 - Responsive interface
 
-**Not implemented yet:** Stockfish evaluations, mistake classification, AI explanations, Supabase sync. The interface deliberately does not claim that moves have been analysed.
+**Now included:** Stockfish 19 Lite single-threaded WASM position evaluations, suggested moves and depth-10 whole-game analysis. The engine runs locally in a browser Web Worker.\n\n**Not implemented yet:** reliable move-quality classification, AI explanations, Supabase sync. Position evaluations are not automatically move grades. The interface deliberately does not claim that moves have been analysed.
 
 ## Next milestone
 
-Integrate the official Stockfish lite single-threaded WASM engine in a Web Worker. Compare the position before and after each move, normalise evaluation to the moving player's perspective, and add accurate per-move insights. Keep optional AI explanations server-side; never expose API keys in the browser.
+Add move-quality grading using a consistent perspective, mate-aware evaluation and practical thresholds, plus engine-line explanations. Keep optional AI explanations server-side; never expose API keys in the browser.\n\nThe Vite plugin copies the official engine JS and WASM from the npm package into public/engine on dev and build. The Stockfish engine is GPL-3.0; review redistribution obligations before production release.
