@@ -7,6 +7,11 @@ export function scoreForPlayer(position, player) {
     return outcome === player ? 1 : 0;
   }
   if (!result || !Number.isFinite(result.value)) return null;
+  if (Array.isArray(result.wdl) && result.wdl.length === 3 && result.wdl.every(Number.isFinite)) {
+    // UCI_ShowWDL reports W/D/L permille from the side-to-move perspective.
+    const sideToMoveScore = (result.wdl[0] + result.wdl[1] / 2) / 1000;
+    return turn === player ? sideToMoveScore : 1 - sideToMoveScore;
+  }
   const sign = turn === player ? 1 : -1;
   if (result.type === 'mate') return sign * result.value > 0 ? 1 : 0;
   if (result.type !== 'cp') return null;
@@ -35,7 +40,7 @@ export function reviewMove(before, after, move) {
   else if (loss < 0.10) label = 'Inaccuracy';
   else if (loss < 0.20) label = 'Mistake';
   else label = 'Blunder';
-  return { label, loss, model: 'lichess-win-chance-proxy-v1', bestMove: before.result?.bestMove || null, bestLine, searchDepth, isBest, played: move.san, player, provisional: true };
+  return { label, loss, model: before.result?.wdl && after.result?.wdl ? 'stockfish-wdl-v1' : 'lichess-win-chance-proxy-v1', bestMove: before.result?.bestMove || null, bestLine, searchDepth, isBest, played: move.san, player, provisional: true };
 }
 export function summarizeReviews(reviews) {
   const valid = reviews.filter(Boolean);
