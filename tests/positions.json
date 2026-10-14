@@ -1,0 +1,26 @@
+{
+  "description": "Real FEN positions for independent Stockfish UCI checks. Expected moves are hypotheses until verified against a recorded engine run.",
+  "cases": [
+    {
+      "id": "white-mate-in-one",
+      "fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
+      "depths": [8, 12, 16],
+      "expectedBestMove": "g6g7",
+      "reason": "White queen on g6 can play Qg7# with king support."
+    },
+    {
+      "id": "black-mate-in-one",
+      "fen": "8/8/8/8/8/5kq1/8/7K b - - 0 1",
+      "depths": [8, 12, 16],
+      "expectedBestMove": "g3g2",
+      "reason": "Mirrored mate-in-one checks Black's perspective."
+    },
+    {
+      "id": "initial-position-stability",
+      "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+      "depths": [8, 12, 16],
+      "expectedBestMove": null,
+      "reason": "Record whether best move and score vary across depths; multiple opening moves are reasonable."
+    }
+  ]
+}
