@@ -41,7 +41,7 @@ function command(cmd, done, timeout = 30000) {
 }
 try {
   await command('uci', line => line === 'uciok');
-  engine.stdin.write('setoption name UCI_ShowWDL value true\\n');
+  engine.stdin.write('setoption name UCI_ShowWDL value true' + String.fromCharCode(10));
   await command('isready', line => line === 'readyok');
   const results = [];
   for (const item of cases) {
