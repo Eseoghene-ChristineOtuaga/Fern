@@ -16,6 +16,6 @@ function stockfishAssets() {
       copyFileSync(source, resolve(dir, name));
     }
   }
-  return { name: 'fern-stockfish-assets', buildStart: copy, configureServer: copy };
+  return { name: 'fern-stockfish-assets', config: copy, configureServer: copy };
 }
 export default defineConfig({ plugins: [react(), stockfishAssets()] });
