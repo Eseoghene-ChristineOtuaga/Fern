@@ -38,8 +38,9 @@ export default function App(){
        setAnalysis({status:'running',positions:[...positions],message:`Analysing position ${i+1} of ${loaded.moves.length+1}…`});
        const fen=board.fen();
        const turn=board.turn();
-       const result=board.isGameOver()?null:await engine.analyse(fen,10);
-       positions.push({fen,turn,result});
+       const outcome=board.isGameOver() ? (board.isDraw() ? 'draw' : board.turn() === 'w' ? 'b' : 'w') : null;
+       const result=outcome?null:await engine.analyse(fen,10);
+       positions.push({fen,turn,result,outcome});
        if(i<loaded.moves.length)board.move(loaded.moves[i].san);
      }
      if(run===runRef.current)setAnalysis({status:'done',positions,message:'Engine analysis complete.'});
