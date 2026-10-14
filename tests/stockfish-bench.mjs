@@ -51,7 +51,8 @@ try {
       const best = output.findLast(line => line.startsWith('bestmove '))?.split(' ')[1];
       const info = output.filter(line => line.startsWith('info ') && line.includes(' score ') && !/\b(lowerbound|upperbound)\b/.test(line)).at(-1);
       const score = info?.match(/score (cp|mate) (-?\d+)/);
-      const result = { id: item.id, depth, bestMove: best, scoreType: score?.[1] ?? null, score: score ? Number(score[2]) : null };
+      const wdl = info?.match(/\\bwdl (\\d+) (\\d+) (\\d+)/);
+      const result = { id: item.id, depth, bestMove: best, scoreType: score?.[1] ?? null, score: score ? Number(score[2]) : null, wdl: wdl ? wdl.slice(1).map(Number) : null };
       results.push(result);
       console.log(JSON.stringify(result));
       if (item.expectedBestMove) assert.equal(best, item.expectedBestMove, item.id + ' at depth ' + depth);
