@@ -3,7 +3,7 @@ import { createEngine, describeEvaluation, describeBestMove } from './engine.js'
 import React,{useMemo,useState,useEffect,useRef} from 'react';
 import {Chess} from 'chess.js';
 import {Chessboard} from 'react-chessboard';
-import {ArrowRight,BookOpen,ChevronLeft,ChevronRight,FileUp,FlipHorizontal,RotateCcw,Trash2} from 'lucide-react';
+import {ArrowRight,BookOpen,Bookmark,BookmarkCheck,ChevronLeft,ChevronRight,FileUp,FlipHorizontal,RotateCcw,Trash2} from 'lucide-react';
 
 const SAMPLE=`[Event "Fern sample game"]
 [Site "Local"]
@@ -18,7 +18,7 @@ const ANALYSIS_MODES={quick:{label:'Quick',depth:10},standard:{label:'Standard',
 
 function parsePgn(source){const game=new Chess();game.loadPgn(source.trim());return{moves:game.history({verbose:true}),headers:game.header(),pgn:game.pgn()};}
 function readSaved(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||'[]');return Array.isArray(x)?x:[]}catch{return []}}
-function PawnMark(){return <span className="fern-mark" aria-hidden="true"><svg viewBox="0 0 46 46" fill="none"><circle cx="23" cy="14" r="6" stroke="currentColor" strokeWidth="2.6"/><path d="M17 23h12l3 7H14l3-7Zm-6 14h24" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>}
+function PawnMark(){return <span className="fern-mark" aria-hidden="true"><svg viewBox="0 0 38 46"><circle cx="19" cy="10" r="6" fill="currentColor"/><path d="M12.5 19h13c-.2 5.8 2.1 9.2 5.7 12.5H6.8c3.6-3.3 5.9-6.7 5.7-12.5Z" fill="currentColor"/><path d="M5 35.5h28M2.5 41h33" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg></span>}
 function gradeClass(label=''){return label.toLowerCase().replace(/\s+/g,'-')}
 
 export default function App(){
@@ -67,7 +67,8 @@ export default function App(){
  const current=useMemo(()=>{const game=new Chess();if(loaded)loaded.moves.slice(0,index).forEach(m=>game.move(m.san));return game},[loaded,index]);
  const total=loaded?.moves.length||0;
  const load=(pgn)=>{try{const parsed=parsePgn(pgn);if(!parsed.moves.length)throw Error('This PGN has no moves.');stopAnalysis();setLoaded(parsed);setInput(pgn);setIndex(parsed.moves.length);setSection('study');setError('')}catch(e){setError('Could not read that PGN. Check the move notation and try again.');}};
- const save=()=>{if(!loaded)return;const item={id:crypto.randomUUID(),title:[loaded.headers.White||'White',loaded.headers.Black||'Black'].join(' vs '),date:new Date().toISOString(),pgn:loaded.pgn,moves:loaded.moves.length};const next=[item,...saved].slice(0,25);setSaved(next);localStorage.setItem(STORAGE,JSON.stringify(next))};
+ const isSaved=!!loaded&&saved.some(item=>item.pgn===loaded.pgn);
+ const toggleSave=()=>{if(!loaded)return;if(isSaved){const next=saved.filter(item=>item.pgn!==loaded.pgn);setSaved(next);localStorage.setItem(STORAGE,JSON.stringify(next));return;}const item={id:crypto.randomUUID(),title:[loaded.headers.White||'White',loaded.headers.Black||'Black'].join(' vs '),date:new Date().toISOString(),pgn:loaded.pgn,moves:loaded.moves.length};const next=[item,...saved].slice(0,25);setSaved(next);localStorage.setItem(STORAGE,JSON.stringify(next))};
  const remove=(id)=>{const next=saved.filter(x=>x.id!==id);setSaved(next);localStorage.setItem(STORAGE,JSON.stringify(next))};
  const onFile=async(e)=>{const file=e.target.files?.[0];if(file){if(file.size>1024*1024){setError('Please choose a PGN smaller than 1 MB.');return;}load(await file.text());}e.target.value=''};
 
@@ -79,6 +80,8 @@ export default function App(){
  const guidedMoments=summary.worst;
  const guidedReview=guidedMoments[guideIndex]||null;
  const guidedMoveIndex=guidedReview?reviews.indexOf(guidedReview):-1;
+ const openGuidedReview=()=>{const first=guidedMoments[0];setGuideIndex(0);if(first){setIndex(reviews.indexOf(first)+1)}setSection('review')};
+ const goGuided=(next)=>{const bounded=Math.max(0,Math.min(guidedMoments.length-1,next));setGuideIndex(bounded);const review=guidedMoments[bounded];if(review)setIndex(reviews.indexOf(review)+1)};
  const suggested=useMemo(()=>{
    if(!loaded||index===0||!analysis.positions[index-1])return null;
    const position=analysis.positions[index-1];
@@ -106,7 +109,7 @@ export default function App(){
 
        <div className="study-layout">
          <section className="board-panel">
-           <div className="panel-heading"><div><span className="kicker">THE BOARD</span><h2>{loaded?'Your game':'A place to begin'}</h2></div><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div>
+           <div className="panel-heading"><div><span className="kicker">THE BOARD</span><h2>{loaded?'Your game':'A place to begin'}</h2></div><div className="board-actions">{loaded&&<button className="quiet-action" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save game'}</button>}<button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div></div>
            <div className="board-wrap"><Chessboard options={boardOptions}/></div>
            <div className="board-bottom"><span>{loaded? `${loaded.headers.White||'White'} · ${loaded.headers.Black||'Black'}`:'Starting position'}</span><span>{loaded? `${index} / ${total} half-moves`:'Ready when you are'}</span></div>
            <div className="playback">
@@ -128,26 +131,29 @@ export default function App(){
              <p className="mode-note">Standard is the default. Deeper analysis takes longer.</p>
              <div className="engine-actions"><button className="primary-button" disabled={!loaded||analysis.status==='running'} onClick={analyzeGame}>Analyse game</button>{analysis.status==='running'&&<button className="file-button" onClick={stopAnalysis}>Cancel</button>}</div>
              <p className="engine-status" role="status">{analysis.message||'Load a game to begin.'}</p>
-             {analysis.positions[index]&&<div className="engine-result"><strong>{describeEvaluation(analysis.positions[index].result,analysis.positions[index].turn)}</strong><span>{analysis.positions[index].result?.bestMove?`Engine suggestion: ${describeBestMove(analysis.positions[index].fen,analysis.positions[index].result.bestMove)}`:'Game over / no legal moves'}</span></div>}
+             {analysis.positions[index]&&analysis.status!=='done'&&<div className="engine-result"><strong>{describeEvaluation(analysis.positions[index].result,analysis.positions[index].turn)}</strong><span>{analysis.positions[index].result?.bestMove?`Engine suggestion: ${describeBestMove(analysis.positions[index].fen,analysis.positions[index].result.bestMove)}`:'Game over / no legal moves'}</span></div>}
            </section>
 
-           {analysis.status==='done'&&currentReview&&<section className="card current-review-card"><span className="kicker">THIS MOVE</span><div className="current-grade"><strong className={`grade-badge large ${gradeClass(currentReview.label)}`}>{currentReview.label}</strong><span>{turn?.san}</span></div><p>{explainMove(currentReview,suggested)}</p><button className="text-button" onClick={()=>setSection('review')}>Open full review <ArrowRight size={14}/></button></section>}
+           {analysis.status==='done'&&currentReview&&<section className="card current-review-card"><span className="kicker">THIS MOVE</span><div className="current-grade"><strong className={`grade-badge large ${gradeClass(currentReview.label)}`}>{currentReview.label}</strong><span>{turn?.san}</span></div><p>{explainMove(currentReview,suggested)}</p>{analysis.positions[index]&&<div className="review-evidence"><span>{describeEvaluation(analysis.positions[index].result,analysis.positions[index].turn)}</span>{suggested&&<span>Best line starts with {suggested}</span>}</div>}<button className="primary-button review-start" onClick={openGuidedReview}>Start review <ArrowRight size={14}/></button></section>}
          </aside>
        </div>
      </>}
 
      {section==='review'&&<section className="review-page">
-       <div className="page-heading"><div><span className="kicker">REVIEW</span><h1>Understand the turning points.</h1></div>{loaded&&<button className="text-button" onClick={()=>setSection('study')}>Back to board</button>}</div>
+       <div className="page-heading"><div><span className="kicker">REVIEW</span><h1>Understand the turning points.</h1></div>{loaded&&<div className="page-actions"><button className="quiet-action" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save game'}</button><button className="text-button" onClick={()=>setSection('study')}>Back to Study</button></div>}</div>
        {!loaded?<div className="empty-state"><BookOpen size={22}/><h2>No game open yet.</h2><p>Open a game in Study first, then come back here for the report.</p><button className="primary-button" onClick={()=>setSection('study')}>Go to Study</button></div>
        :analysis.status!=='done'?<div className="empty-state"><h2>Your review isn't ready yet.</h2><p>Run Stockfish analysis in Study to generate move classifications and turning points.</p><button className="primary-button" onClick={()=>setSection('study')}>Analyse this game</button></div>
-       :<div className="review-grid">
-         <section className="card report-card"><span className="kicker">FULL REPORT</span><h2>{summary.reviewed} moves reviewed.</h2><div className="review-stats">{Object.entries(summary.counts).map(([label,count])=><div className={`stat-${gradeClass(label)}`} key={label}><strong>{count}</strong><span>{label}</span></div>)}</div><p>Fern compares the position before and after each move, using Stockfish evidence rather than guessing from notation alone.</p></section>
-         <section className="card guided-card"><span className="kicker">REVIEW WITH FERN</span><h2>One important moment at a time.</h2>{guidedReview?<div className="guided-step"><div className="guided-progress">Moment {guideIndex+1} of {guidedMoments.length}</div><div className="guided-move"><span>{Math.ceil((guidedMoveIndex+1)/2)}{guidedMoveIndex%2?'...':'.'} {guidedReview.played}</span><strong className={`grade-badge ${gradeClass(guidedReview.label)}`}>{guidedReview.label}</strong></div><p>{explainMove(guidedReview,describeBestMove(analysis.positions[guidedMoveIndex]?.fen,analysis.positions[guidedMoveIndex]?.result?.bestMove))}</p><div className="guided-actions"><button className="text-button" disabled={guideIndex===0} onClick={()=>setGuideIndex(i=>Math.max(0,i-1))}>Previous</button><button className="primary-button" onClick={()=>{setIndex(guidedMoveIndex+1);setSection('study')}}>Show on board <ArrowRight size={14}/></button><button className="text-button" disabled={guideIndex===guidedMoments.length-1} onClick={()=>setGuideIndex(i=>Math.min(guidedMoments.length-1,i+1))}>Next</button></div></div>:<p>No major turning points found. This game was unusually steady.</p>}</section>
+       :<div className="review-experience">
+         <div className="review-stage">
+           <section className="board-panel review-board"><div className="panel-heading"><div><span className="kicker">GUIDED REVIEW</span><h2>{loaded.headers.White||'White'} · {loaded.headers.Black||'Black'}</h2></div><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div><div className="board-wrap"><Chessboard options={boardOptions}/></div><div className="board-bottom"><span>{turn?`${Math.ceil(index/2)}${index%2?'.':'...'} ${turn.san}`:'Start'}</span><span>{index} / {total}</span></div></section>
+           <section className="card guided-card"><span className="kicker">REVIEW WITH FERN</span><h2>One important moment at a time.</h2>{guidedReview?<div className="guided-step"><div className="guided-progress">Moment {guideIndex+1} of {guidedMoments.length}</div><div className="guided-move"><span>{Math.ceil((guidedMoveIndex+1)/2)}{guidedMoveIndex%2?'...':'.'} {guidedReview.played}</span><strong className={`grade-badge ${gradeClass(guidedReview.label)}`}>{guidedReview.label}</strong></div><p>{explainMove(guidedReview,describeBestMove(analysis.positions[guidedMoveIndex]?.fen,analysis.positions[guidedMoveIndex]?.result?.bestMove))}</p><div className="review-evidence"><span>{describeEvaluation(analysis.positions[guidedMoveIndex+1]?.result,analysis.positions[guidedMoveIndex+1]?.turn)}</span><span>Engine preference: {describeBestMove(analysis.positions[guidedMoveIndex]?.fen,analysis.positions[guidedMoveIndex]?.result?.bestMove)||'—'}</span></div><div className="guided-actions"><button className="text-button" disabled={guideIndex===0} onClick={()=>goGuided(guideIndex-1)}>Previous key moment</button><button className="primary-button" disabled={guideIndex===guidedMoments.length-1} onClick={()=>goGuided(guideIndex+1)}>{guideIndex===guidedMoments.length-1?'Review complete':'Next key moment'} <ArrowRight size={14}/></button></div></div>:<p>No major turning points found. This game was unusually steady.</p>}</section>
+         </div>
+         <section className="card report-card"><span className="kicker">FULL REPORT</span><h2>{summary.reviewed} moves reviewed.</h2><div className="review-stats">{Object.entries(summary.counts).map(([label,count])=><div className={`stat-${gradeClass(label)}`} key={label}><strong>{count}</strong><span>{label}</span></div>)}</div><p>Use Study when you want to inspect every move. Guided Review keeps you on the positions Fern thinks matter most.</p></section>
        </div>}
      </section>}
 
      {section==='library'&&<section className="library-page">
-       <div className="page-heading"><div><span className="kicker">LIBRARY</span><h1>Games worth revisiting.</h1></div>{loaded&&<button className="save-button" onClick={save}><BookOpen size={16}/> Save current game</button>}</div>
+       <div className="page-heading"><div><span className="kicker">LIBRARY</span><h1>Games worth revisiting.</h1></div>{loaded&&<button className="save-button" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save current game'}</button>}</div>
        {saved.length?<div className="history-list">{saved.map(item=><div className="history-row" key={item.id}><div><strong>{item.title}</strong><span>{new Date(item.date).toLocaleDateString()} · {item.moves} half-moves</span></div><div className="history-actions"><button onClick={()=>{load(item.pgn);setSection('study')}}>Open <ArrowRight size={15}/></button><button aria-label="Delete saved game" onClick={()=>remove(item.id)}><Trash2 size={17}/></button></div></div>)}</div>:<div className="empty-history"><BookOpen size={21}/><span>No saved games yet. Your studies will live here.</span></div>}
      </section>}
 
