@@ -1,26 +1,82 @@
 {
-  "description": "Real FEN positions for independent Stockfish UCI checks. Expected moves are hypotheses until verified against a recorded engine run.",
+  "description": "Legal benchmark FENs for Stockfish depth-stability checks. Forced-mate expectations are asserted; non-forced positions are observational.",
   "cases": [
     {
       "id": "white-mate-in-one",
       "fen": "7k/8/5KQ1/8/8/8/8/8 w - - 0 1",
-      "depths": [8, 12, 16],
+      "depths": [
+        8,
+        12,
+        16
+      ],
       "expectedBestMove": "g6g7",
       "reason": "White queen on g6 can play Qg7# with king support."
     },
     {
       "id": "black-mate-in-one",
       "fen": "8/8/8/8/8/5kq1/8/7K b - - 0 1",
-      "depths": [8, 12, 16],
+      "depths": [
+        8,
+        12,
+        16
+      ],
       "expectedBestMove": "g3g2",
       "reason": "Mirrored mate-in-one checks Black's perspective."
     },
     {
       "id": "initial-position-stability",
       "fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-      "depths": [8, 12, 16],
+      "depths": [
+        8,
+        12,
+        16
+      ],
       "expectedBestMove": null,
       "reason": "Record whether best move and score vary across depths; multiple opening moves are reasonable."
+    },
+    {
+      "id": "ruy-lopez-quiet-development",
+      "fen": "r1bqk2r/1pppbppp/p1n2n2/4p3/B3P3/2P2N2/PP1P1PPP/RNBQR1K1 w kq - 4 9",
+      "depths": [
+        8,
+        12,
+        16
+      ],
+      "expectedBestMove": null,
+      "reason": "Quiet middlegame position for measuring best-move and evaluation stability without a forced tactical answer."
+    },
+    {
+      "id": "black-to-move-middlegame",
+      "fen": "r2q1rk1/ppp2ppp/2npbn2/8/2B1P3/2N2N2/PPPP1PPP/R1BQR1K1 b - - 4 9",
+      "depths": [
+        8,
+        12,
+        16
+      ],
+      "expectedBestMove": null,
+      "reason": "Black-to-move middlegame checks perspective handling and depth stability."
+    },
+    {
+      "id": "queen-advantage-conversion",
+      "fen": "6k1/5ppp/8/8/8/8/5PPP/3Q2K1 w - - 0 1",
+      "depths": [
+        8,
+        12,
+        16
+      ],
+      "expectedBestMove": null,
+      "reason": "Clearly winning but non-mating material advantage tests whether evaluation magnitude remains directionally stable across depths."
+    },
+    {
+      "id": "rook-endgame",
+      "fen": "8/5pk1/6p1/7p/7P/6P1/5PK1/4R3 w - - 0 1",
+      "depths": [
+        8,
+        12,
+        16
+      ],
+      "expectedBestMove": null,
+      "reason": "Low-material endgame broadens the benchmark beyond openings, middlegames, and immediate mates."
     }
   ]
 }
