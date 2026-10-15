@@ -33,6 +33,8 @@ export default function App(){
  const [guideIndex,setGuideIndex]=useState(0);
  const [reviewMode,setReviewMode]=useState('replay');
  const [isReplaying,setIsReplaying]=useState(false);
+ const [reviewMode,setReviewMode]=useState('replay');
+ const [isReplaying,setIsReplaying]=useState(false);
  const engineRef=useRef(null);
  const runRef=useRef(0);
  const [analysis,setAnalysis]=useState({status:'idle',positions:[],message:''});
@@ -69,6 +71,7 @@ export default function App(){
  const stopAnalysis=()=>{runRef.current++;engineRef.current?.dispose();engineRef.current=null;setAnalysis({status:'idle',positions:[],message:'Analysis cancelled.'})};
  const current=useMemo(()=>{const game=new Chess();if(loaded)loaded.moves.slice(0,index).forEach(m=>game.move(m.san));return game},[loaded,index]);
  const total=loaded?.moves.length||0;
+ useEffect(()=>{if(!isReplaying||section!=='review'||reviewMode!=='replay'||!loaded)return;const timer=setInterval(()=>{setIndex(i=>{if(i>=total){setIsReplaying(false);return i}return i+1})},1400);return()=>clearInterval(timer)},[isReplaying,section,reviewMode,loaded,total]);
  const load=(pgn)=>{try{const parsed=parsePgn(pgn);if(!parsed.moves.length)throw Error('This PGN has no moves.');stopAnalysis();setLoaded(parsed);setInput(pgn);setIndex(parsed.moves.length);setSection('study');setError('')}catch(e){setError('Could not read that PGN. Check the move notation and try again.');}};
  const isSaved=!!loaded&&saved.some(item=>item.pgn===loaded.pgn);
  const toggleSave=()=>{if(!loaded)return;if(isSaved){const next=saved.filter(item=>item.pgn!==loaded.pgn);setSaved(next);localStorage.setItem(STORAGE,JSON.stringify(next));return;}const item={id:crypto.randomUUID(),title:[loaded.headers.White||'White',loaded.headers.Black||'Black'].join(' vs '),date:new Date().toISOString(),pgn:loaded.pgn,moves:loaded.moves.length};const next=[item,...saved].slice(0,25);setSaved(next);localStorage.setItem(STORAGE,JSON.stringify(next))};
@@ -85,6 +88,8 @@ export default function App(){
  const guidedMoveIndex=guidedReview?reviews.indexOf(guidedReview):-1;
  const openGuidedReview=()=>{const first=guidedMoments[0];setGuideIndex(0);if(first){setIndex(reviews.indexOf(first)+1)}setSection('review')};
  const goGuided=(next)=>{const bounded=Math.max(0,Math.min(guidedMoments.length-1,next));setGuideIndex(bounded);const review=guidedMoments[bounded];if(review)setIndex(reviews.indexOf(review)+1)};
+ const startReplay=()=>{setReviewMode('replay');setIndex(0);setIsReplaying(true);setSection('review')};
+ const toggleReplay=()=>{if(index>=total)setIndex(0);setIsReplaying(v=>!v)};
  const startReplay=()=>{setReviewMode('replay');setIndex(0);setIsReplaying(true);setSection('review')};
  const toggleReplay=()=>{if(index>=total)setIndex(0);setIsReplaying(v=>!v)};
  const suggested=useMemo(()=>{
