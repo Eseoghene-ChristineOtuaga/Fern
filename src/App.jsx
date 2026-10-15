@@ -3,7 +3,7 @@ import { createEngine, describeEvaluation, describeBestMove } from './engine.js'
 import React,{useMemo,useState,useEffect,useRef} from 'react';
 import {Chess} from 'chess.js';
 import {Chessboard} from 'react-chessboard';
-import {ArrowRight,BookOpen,Bookmark,BookmarkCheck,ChevronLeft,ChevronRight,FileUp,FlipHorizontal,RotateCcw,Trash2} from 'lucide-react';
+import {ArrowRight,BookOpen,Bookmark,BookmarkCheck,ChevronLeft,ChevronRight,FileUp,FlipHorizontal,Pause,Play,RotateCcw,Trash2} from 'lucide-react';
 
 const SAMPLE=`[Event "Fern sample game"]
 [Site "Local"]
@@ -31,12 +31,15 @@ export default function App(){
  const [section,setSection]=useState('study');
  const [analysisMode,setAnalysisMode]=useState('standard');
  const [guideIndex,setGuideIndex]=useState(0);
+ const [reviewMode,setReviewMode]=useState('replay');
+ const [isReplaying,setIsReplaying]=useState(false);
  const engineRef=useRef(null);
  const runRef=useRef(0);
  const [analysis,setAnalysis]=useState({status:'idle',positions:[],message:''});
 
  useEffect(()=>()=>{runRef.current++;engineRef.current?.dispose()},[]);
- useEffect(()=>{setGuideIndex(0)},[analysis.status,loaded]);
+ useEffect(()=>{setGuideIndex(0);setIsReplaying(false)},[analysis.status,loaded]);
+ useEffect(()=>{if(!isReplaying||section!=='review'||reviewMode!=='replay'||!loaded)return;const timer=setInterval(()=>{setIndex(i=>{if(i>=total){setIsReplaying(false);return i}return i+1})},1400);return()=>clearInterval(timer)},[isReplaying,section,reviewMode,loaded,total]);
 
  const analyzeGame=async()=>{
    if(!loaded || analysis.status==='running')return;
@@ -82,6 +85,8 @@ export default function App(){
  const guidedMoveIndex=guidedReview?reviews.indexOf(guidedReview):-1;
  const openGuidedReview=()=>{const first=guidedMoments[0];setGuideIndex(0);if(first){setIndex(reviews.indexOf(first)+1)}setSection('review')};
  const goGuided=(next)=>{const bounded=Math.max(0,Math.min(guidedMoments.length-1,next));setGuideIndex(bounded);const review=guidedMoments[bounded];if(review)setIndex(reviews.indexOf(review)+1)};
+ const startReplay=()=>{setReviewMode('replay');setIndex(0);setIsReplaying(true);setSection('review')};
+ const toggleReplay=()=>{if(index>=total)setIndex(0);setIsReplaying(v=>!v)};
  const suggested=useMemo(()=>{
    if(!loaded||index===0||!analysis.positions[index-1])return null;
    const position=analysis.positions[index-1];
@@ -104,54 +109,55 @@ export default function App(){
        <section className="hero compact-hero">
          <div className="eyebrow">YOUR PERSONAL CHESS STUDY</div>
          <h1>Every move has a <em>story.</em></h1>
-         <p>Bring a game, replay it at your pace, and let Fern surface the moments worth understanding.</p>
+         <p>{loaded?'Board, moves and feedback stay together while you study.':'Bring a game, replay it at your pace, and let Fern surface the moments worth understanding.'}</p>
        </section>
 
-       <div className="study-layout">
+       {!loaded?<div className="study-empty">
          <section className="board-panel">
-           <div className="panel-heading"><div><span className="kicker">THE BOARD</span><h2>{loaded?'Your game':'A place to begin'}</h2></div><div className="board-actions">{loaded&&<button className="quiet-action" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save game'}</button>}<button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div></div>
+           <div className="panel-heading"><div><span className="kicker">THE BOARD</span><h2>A place to begin</h2></div><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div>
            <div className="board-wrap"><Chessboard options={boardOptions}/></div>
-           <div className="board-bottom"><span>{loaded? `${loaded.headers.White||'White'} · ${loaded.headers.Black||'Black'}`:'Starting position'}</span><span>{loaded? `${index} / ${total} half-moves`:'Ready when you are'}</span></div>
-           <div className="playback">
-             <button aria-label="First move" disabled={!loaded||index===0} onClick={()=>setIndex(0)}><RotateCcw size={17}/></button>
-             <button aria-label="Previous move" disabled={!loaded||index===0} onClick={()=>setIndex(i=>i-1)}><ChevronLeft size={22}/></button>
-             <div className="move-indicator">{turn?`${Math.ceil(index/2)}${index%2?'.':'...'} ${turn.san}`:'Start'}</div>
-             <button aria-label="Next move" disabled={!loaded||index===total} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={22}/></button>
-             <button aria-label="Last move" disabled={!loaded||index===total} onClick={()=>setIndex(total)}><ArrowRight size={17}/></button>
-           </div>
+         </section>
+         <section className="card import-card"><span className="kicker">BRING YOUR GAME</span><h2>Let's take a look.</h2><p>Paste a PGN from a game you've played, or upload a <code>.pgn</code> file.</p><textarea aria-label="Paste PGN" value={input} onChange={e=>setInput(e.target.value)} placeholder={'[Event "My game"]\n\n1. e4 e5 2. Nf3 ...'} spellCheck={false}/>{error&&<p className="error" role="alert">{error}</p>}<div className="import-actions"><label className="file-button"><FileUp size={17}/> Upload PGN<input type="file" accept=".pgn,.txt" onChange={onFile} hidden/></label><button className="primary-button" onClick={()=>load(input)} disabled={!input.trim()}>Open game <ArrowRight size={17}/></button></div><button className="sample-link" onClick={()=>load(SAMPLE)}>Or explore a sample game <ArrowRight size={14}/></button></section>
+       </div>
+       :<div className="analysis-workspace">
+         <section className="board-panel workspace-board">
+           <div className="panel-heading"><div><span className="kicker">THE BOARD</span><h2>{(loaded.headers.White||'White')+' · '+(loaded.headers.Black||'Black')}</h2></div><div className="board-actions"><button className="quiet-action" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save game'}</button><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div></div>
+           <div className="board-wrap"><Chessboard options={boardOptions}/></div>
+           <div className="board-bottom"><span>{turn?(Math.ceil(index/2)+(index%2?'.':'...')+' '+turn.san):'Start'}</span><span>{index+' / '+total}</span></div>
+           <div className="playback"><button aria-label="First move" disabled={index===0} onClick={()=>setIndex(0)}><RotateCcw size={17}/></button><button aria-label="Previous move" disabled={index===0} onClick={()=>setIndex(i=>i-1)}><ChevronLeft size={22}/></button><div className="move-indicator">{turn?turn.san:'Start'}</div><button aria-label="Next move" disabled={index===total} onClick={()=>setIndex(i=>i+1)}><ChevronRight size={22}/></button><button aria-label="Last move" disabled={index===total} onClick={()=>setIndex(total)}><ArrowRight size={17}/></button></div>
          </section>
 
-         <aside className="study-sidebar">
-           {!loaded?<section className="card import-card"><span className="kicker">BRING YOUR GAME</span><h2>Let's take a look.</h2><p>Paste a PGN from a game you've played, or upload a <code>.pgn</code> file.</p><textarea aria-label="Paste PGN" value={input} onChange={e=>setInput(e.target.value)} placeholder={'[Event "My game"]\n\n1. e4 e5 2. Nf3 ...'} spellCheck={false}/>{error&&<p className="error" role="alert">{error}</p>}<div className="import-actions"><label className="file-button"><FileUp size={17}/> Upload PGN<input type="file" accept=".pgn,.txt" onChange={onFile} hidden/></label><button className="primary-button" onClick={()=>load(input)} disabled={!input.trim()}>Open game <ArrowRight size={17}/></button></div><button className="sample-link" onClick={()=>load(SAMPLE)}>Or explore a sample game <ArrowRight size={14}/></button></section>
-           :<section className="card move-list-card"><div className="card-head-row"><div><span className="kicker">MOVES</span><h2>Replay the game.</h2></div><button className="text-button" onClick={()=>{stopAnalysis();setLoaded(null);setInput('');setIndex(0)}}>New game</button></div><div className="move-list">{loaded.moves.map((m,i)=>{const r=reviews[i];return <button className={index===i+1?'move-row active':''||'move-row'} key={i} onClick={()=>setIndex(i+1)}><span>{Math.ceil((i+1)/2)}{i%2?'...':'.'}</span><strong>{m.san}</strong><em className={r?.label?`grade-badge ${gradeClass(r.label)}`:''}>{r?.label||''}</em></button>})}</div></section>}
-
-           <section className="card analysis-card">
-             <span className="kicker">ANALYSIS</span><h2>Read the position.</h2>
-             <div className="mode-switch" role="group" aria-label="Analysis intensity">{Object.entries(ANALYSIS_MODES).map(([key,mode])=><button key={key} type="button" className={analysisMode===key?'active':''} disabled={analysis.status==='running'} onClick={()=>setAnalysisMode(key)}>{mode.label}</button>)}</div>
-             <p className="mode-note">Standard is the default. Deeper analysis takes longer.</p>
-             <div className="engine-actions"><button className="primary-button" disabled={!loaded||analysis.status==='running'} onClick={analyzeGame}>Analyse game</button>{analysis.status==='running'&&<button className="file-button" onClick={stopAnalysis}>Cancel</button>}</div>
-             <p className="engine-status" role="status">{analysis.message||'Load a game to begin.'}</p>
-             {analysis.positions[index]&&analysis.status!=='done'&&<div className="engine-result"><strong>{describeEvaluation(analysis.positions[index].result,analysis.positions[index].turn)}</strong><span>{analysis.positions[index].result?.bestMove?`Engine suggestion: ${describeBestMove(analysis.positions[index].fen,analysis.positions[index].result.bestMove)}`:'Game over / no legal moves'}</span></div>}
-           </section>
-
-           {analysis.status==='done'&&currentReview&&<section className="card current-review-card"><span className="kicker">THIS MOVE</span><div className="current-grade"><strong className={`grade-badge large ${gradeClass(currentReview.label)}`}>{currentReview.label}</strong><span>{turn?.san}</span></div><p>{explainMove(currentReview,suggested)}</p>{analysis.positions[index]&&<div className="review-evidence"><span>{describeEvaluation(analysis.positions[index].result,analysis.positions[index].turn)}</span>{suggested&&<span>Best line starts with {suggested}</span>}</div>}<button className="primary-button review-start" onClick={openGuidedReview}>Start review <ArrowRight size={14}/></button></section>}
-         </aside>
-       </div>
+         <section className="card study-console">
+           <div className="console-top"><div><span className="kicker">ANALYSIS WORKSPACE</span><h2>{analysis.status==='done'?'Study the game.':'Analyse the game.'}</h2></div><button className="text-button" onClick={()=>{stopAnalysis();setLoaded(null);setInput('');setIndex(0)}}>New game</button></div>
+           <div className="analysis-toolbar"><div className="mode-switch" role="group" aria-label="Analysis intensity">{Object.entries(ANALYSIS_MODES).map(([key,mode])=><button key={key} type="button" className={analysisMode===key?'active':''} disabled={analysis.status==='running'} onClick={()=>setAnalysisMode(key)}>{mode.label}</button>)}</div><button className="primary-button compact-action" disabled={analysis.status==='running'} onClick={analyzeGame}>{analysis.status==='done'?'Re-analyse':'Analyse game'}</button>{analysis.status==='running'&&<button className="text-button" onClick={stopAnalysis}>Cancel</button>}</div>
+           <div className="analysis-status-line"><span>{analysis.message||'Choose an analysis level, then analyse.'}</span>{analysis.status==='done'&&<button className="text-button" onClick={startReplay}>Replay review <Play size={13}/></button>}</div>
+           <div className="console-moves">{loaded.moves.map((m,i)=>{const r=reviews[i];return <button className={index===i+1?'move-row active':'move-row'} key={i} onClick={()=>setIndex(i+1)}><span>{Math.ceil((i+1)/2)}{i%2?'...':'.'}</span><strong>{m.san}</strong><em className={r?.label?('grade-badge '+gradeClass(r.label)):''}>{r?.label||''}</em></button>})}</div>
+           <div className="console-feedback">
+             {analysis.status==='done'&&currentReview?<><div className="feedback-heading"><strong className={'grade-badge large '+gradeClass(currentReview.label)}>{currentReview.label}</strong><span>{turn?.san}</span></div><p>{explainMove(currentReview,suggested)}</p><div className="review-evidence"><span>{describeEvaluation(analysis.positions[index]?.result,analysis.positions[index]?.turn)}</span>{suggested&&<span>Engine preference: {suggested}</span>}</div><div className="feedback-actions"><button className="primary-button" onClick={()=>{setReviewMode('replay');setIsReplaying(false);setSection('review')}}>Open Review <ArrowRight size={14}/></button><button className="text-button" onClick={openGuidedReview}>Key moments</button></div></>:<p className="feedback-placeholder">{analysis.status==='running'?'Analysis is running. You can still replay the game while Fern works.':'Analyse the game to see move-by-move feedback here.'}</p>}
+           </div>
+         </section>
+       </div>}
      </>}
-
      {section==='review'&&<section className="review-page">
-       <div className="page-heading"><div><span className="kicker">REVIEW</span><h1>Understand the turning points.</h1></div>{loaded&&<div className="page-actions"><button className="quiet-action" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save game'}</button><button className="text-button" onClick={()=>setSection('study')}>Back to Study</button></div>}</div>
+       <div className="page-heading"><div><span className="kicker">REVIEW</span><h1>See the whole game, move by move.</h1></div>{loaded&&<div className="page-actions"><button className="quiet-action" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save game'}</button><button className="text-button" onClick={()=>setSection('study')}>Back to Study</button></div>}</div>
        {!loaded?<div className="empty-state"><BookOpen size={22}/><h2>No game open yet.</h2><p>Open a game in Study first, then come back here for the report.</p><button className="primary-button" onClick={()=>setSection('study')}>Go to Study</button></div>
-       :analysis.status!=='done'?<div className="empty-state"><h2>Your review isn't ready yet.</h2><p>Run Stockfish analysis in Study to generate move classifications and turning points.</p><button className="primary-button" onClick={()=>setSection('study')}>Analyse this game</button></div>
-       :<div className="review-experience">
+       :analysis.status!=='done'?<div className="empty-state"><h2>Your review isn't ready yet.</h2><p>Run Stockfish analysis in Study first.</p><button className="primary-button" onClick={()=>setSection('study')}>Analyse this game</button></div>
+       :<div className="review-shell">
+         <div className="review-modebar"><button className={reviewMode==='replay'?'active':''} onClick={()=>{setReviewMode('replay');setIsReplaying(false)}}>Full replay</button><button className={reviewMode==='key'?'active':''} onClick={()=>{setReviewMode('key');setIsReplaying(false);const first=guidedMoments[0];if(first){setGuideIndex(0);setIndex(reviews.indexOf(first)+1)}}}>Key moments</button><div className="review-summary-inline">{Object.entries(summary.counts).map(([label,count])=><span key={label}><strong>{count}</strong> {label}</span>)}</div></div>
+
          <div className="review-stage">
-           <section className="board-panel review-board"><div className="panel-heading"><div><span className="kicker">GUIDED REVIEW</span><h2>{loaded.headers.White||'White'} · {loaded.headers.Black||'Black'}</h2></div><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div><div className="board-wrap"><Chessboard options={boardOptions}/></div><div className="board-bottom"><span>{turn?`${Math.ceil(index/2)}${index%2?'.':'...'} ${turn.san}`:'Start'}</span><span>{index} / {total}</span></div></section>
-           <section className="card guided-card"><span className="kicker">REVIEW WITH FERN</span><h2>One important moment at a time.</h2>{guidedReview?<div className="guided-step"><div className="guided-progress">Moment {guideIndex+1} of {guidedMoments.length}</div><div className="guided-move"><span>{Math.ceil((guidedMoveIndex+1)/2)}{guidedMoveIndex%2?'...':'.'} {guidedReview.played}</span><strong className={`grade-badge ${gradeClass(guidedReview.label)}`}>{guidedReview.label}</strong></div><p>{explainMove(guidedReview,describeBestMove(analysis.positions[guidedMoveIndex]?.fen,analysis.positions[guidedMoveIndex]?.result?.bestMove))}</p><div className="review-evidence"><span>{describeEvaluation(analysis.positions[guidedMoveIndex+1]?.result,analysis.positions[guidedMoveIndex+1]?.turn)}</span><span>Engine preference: {describeBestMove(analysis.positions[guidedMoveIndex]?.fen,analysis.positions[guidedMoveIndex]?.result?.bestMove)||'—'}</span></div><div className="guided-actions"><button className="text-button" disabled={guideIndex===0} onClick={()=>goGuided(guideIndex-1)}>Previous key moment</button><button className="primary-button" disabled={guideIndex===guidedMoments.length-1} onClick={()=>goGuided(guideIndex+1)}>{guideIndex===guidedMoments.length-1?'Review complete':'Next key moment'} <ArrowRight size={14}/></button></div></div>:<p>No major turning points found. This game was unusually steady.</p>}</section>
+           <section className="board-panel review-board"><div className="panel-heading"><div><span className="kicker">{reviewMode==='replay'?'FULL REPLAY':'KEY MOMENTS'}</span><h2>{(loaded.headers.White||'White')+' · '+(loaded.headers.Black||'Black')}</h2></div><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div><div className="board-wrap"><Chessboard options={boardOptions}/></div><div className="board-bottom"><span>{turn?(Math.ceil(index/2)+(index%2?'.':'...')+' '+turn.san):'Start'}</span><span>{index+' / '+total}</span></div></section>
+
+           {reviewMode==='replay'?<section className="card replay-panel">
+             <div className="replay-head"><div><span className="kicker">REPLAY GAME</span><h2>{currentReview?((turn?.san||'')+' · '+currentReview.label):'Start position'}</h2></div><button className="replay-toggle" onClick={toggleReplay}>{isReplaying?<><Pause size={16}/> Pause</>:<><Play size={16}/> {index>=total?'Replay again':'Replay game'}</>}</button></div>
+             <div className="replay-controls"><button disabled={index===0} onClick={()=>{setIsReplaying(false);setIndex(i=>Math.max(0,i-1))}}><ChevronLeft size={18}/> Previous</button><button disabled={index===total} onClick={()=>{setIsReplaying(false);setIndex(i=>Math.min(total,i+1))}}>Next <ChevronRight size={18}/></button></div>
+             <div className="review-move-strip">{loaded.moves.map((m,i)=>{const r=reviews[i];return <button key={i} className={index===i+1?'active':''} onClick={()=>{setIsReplaying(false);setIndex(i+1)}}><span>{i+1}</span><strong>{m.san}</strong>{r&&<em className={'grade-badge '+gradeClass(r.label)}>{r.label}</em>}</button>})}</div>
+             <div className="replay-feedback">{currentReview?<><div className="feedback-heading"><strong className={'grade-badge large '+gradeClass(currentReview.label)}>{currentReview.label}</strong><span>{Math.ceil(index/2)}{index%2?'.':'...'} {turn?.san}</span></div><p>{explainMove(currentReview,suggested)}</p><div className="review-evidence"><span>{describeEvaluation(analysis.positions[index]?.result,analysis.positions[index]?.turn)}</span>{suggested&&<span>Engine preference: {suggested}</span>}</div></>:<p>Press Replay game and Fern will walk through every move while the board and feedback update together.</p>}</div>
+           </section>
+           :<section className="card guided-card"><span className="kicker">REVIEW WITH FERN</span><h2>Only the moments that changed the game.</h2>{guidedReview?<div className="guided-step"><div className="guided-progress">Moment {guideIndex+1} of {guidedMoments.length}</div><div className="guided-move"><span>{Math.ceil((guidedMoveIndex+1)/2)}{guidedMoveIndex%2?'...':'.'} {guidedReview.played}</span><strong className={'grade-badge '+gradeClass(guidedReview.label)}>{guidedReview.label}</strong></div><p>{explainMove(guidedReview,describeBestMove(analysis.positions[guidedMoveIndex]?.fen,analysis.positions[guidedMoveIndex]?.result?.bestMove))}</p><div className="guided-actions"><button className="text-button" disabled={guideIndex===0} onClick={()=>goGuided(guideIndex-1)}>Previous key moment</button><button className="primary-button" disabled={guideIndex===guidedMoments.length-1} onClick={()=>goGuided(guideIndex+1)}>{guideIndex===guidedMoments.length-1?'Review complete':'Next key moment'} <ArrowRight size={14}/></button></div></div>:<p>No major turning points found. This game was unusually steady.</p>}</section>}
          </div>
-         <section className="card report-card"><span className="kicker">FULL REPORT</span><h2>{summary.reviewed} moves reviewed.</h2><div className="review-stats">{Object.entries(summary.counts).map(([label,count])=><div className={`stat-${gradeClass(label)}`} key={label}><strong>{count}</strong><span>{label}</span></div>)}</div><p>Use Study when you want to inspect every move. Guided Review keeps you on the positions Fern thinks matter most.</p></section>
        </div>}
      </section>}
-
      {section==='library'&&<section className="library-page">
        <div className="page-heading"><div><span className="kicker">LIBRARY</span><h1>Games worth revisiting.</h1></div>{loaded&&<button className="save-button" onClick={toggleSave}>{isSaved?<BookmarkCheck size={16}/>:<Bookmark size={16}/>} {isSaved?'Saved':'Save current game'}</button>}</div>
        {saved.length?<div className="history-list">{saved.map(item=><div className="history-row" key={item.id}><div><strong>{item.title}</strong><span>{new Date(item.date).toLocaleDateString()} · {item.moves} half-moves</span></div><div className="history-actions"><button onClick={()=>{load(item.pgn);setSection('study')}}>Open <ArrowRight size={15}/></button><button aria-label="Delete saved game" onClick={()=>remove(item.id)}><Trash2 size={17}/></button></div></div>)}</div>:<div className="empty-history"><BookOpen size={21}/><span>No saved games yet. Your studies will live here.</span></div>}
