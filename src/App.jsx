@@ -68,6 +68,7 @@ export default function App(){
  const stopAnalysis=()=>{runRef.current++;engineRef.current?.dispose();engineRef.current=null;setAnalysis({status:'idle',positions:[],message:'Analysis cancelled.'})};
  const current=useMemo(()=>{const game=new Chess();if(loaded)loaded.moves.slice(0,index).forEach(m=>game.move(m.san));return game},[loaded,index]);
  const total=loaded?.moves.length||0;
+ useEffect(()=>{if(!isReplaying||section!=='review'||reviewMode!=='replay'||!loaded)return;const timer=setInterval(()=>{setIndex(i=>{if(i>=total){setIsReplaying(false);return i}return i+1})},1400);return()=>clearInterval(timer)},[isReplaying,section,reviewMode,loaded,total]);
 
  const load=(pgn)=>{try{const parsed=parsePgn(pgn);if(!parsed.moves.length)throw Error('This PGN has no moves.');stopAnalysis();setLoaded(parsed);setInput(pgn);setIndex(parsed.moves.length);setSection('study');setError('')}catch(e){setError('Could not read that PGN. Check the move notation and try again.');}};
  const isSaved=!!loaded&&saved.some(item=>item.pgn===loaded.pgn);
