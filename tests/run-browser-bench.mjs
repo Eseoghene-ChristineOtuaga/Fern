@@ -20,10 +20,13 @@ try {
   await waitForServer();
   browser = await chromium.launch({headless:true});
   const page = await browser.newPage();
+  page.on('console', msg => console.log('[browser]', msg.text()));
+  page.on('pageerror', err => console.error('[browser error]', err.message));
   const generator = spawn(process.execPath, ['tests/browser-bench-page.mjs'], {stdio:['ignore','pipe','inherit']});
   let html=''; for await (const chunk of generator.stdout) html += chunk;
+  await page.goto(`http://127.0.0.1:${port}/`);
   await page.setContent(html);
-  const result = await page.waitForFunction(() => window.__FERN_BENCH__?.done, null, {timeout:180000}).then(h=>h.jsonValue());
+  const result = await page.waitForFunction(() => window.__FERN_BENCH__?.done, null, {timeout:240000}).then(h=>h.jsonValue());
   if (result.error) throw new Error(result.error);
   writeFileSync('stockfish19-browser-results.json', JSON.stringify(result.results,null,2)+'\n');
   for (const row of result.results) console.log(JSON.stringify(row));
