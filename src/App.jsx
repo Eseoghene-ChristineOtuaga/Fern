@@ -39,7 +39,6 @@ export default function App(){
 
  useEffect(()=>()=>{runRef.current++;engineRef.current?.dispose()},[]);
  useEffect(()=>{setGuideIndex(0);setIsReplaying(false)},[analysis.status,loaded]);
- useEffect(()=>{if(!isReplaying||section!=='review'||reviewMode!=='replay'||!loaded)return;const timer=setInterval(()=>{setIndex(i=>{if(i>=total){setIsReplaying(false);return i}return i+1})},1400);return()=>clearInterval(timer)},[isReplaying,section,reviewMode,loaded,total]);
 
  const analyzeGame=async()=>{
    if(!loaded || analysis.status==='running')return;
