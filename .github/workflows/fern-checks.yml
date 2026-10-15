@@ -34,7 +34,10 @@ jobs:
       - name: Run native reference depth benchmark
         env:
           STOCKFISH_BIN: /usr/games/stockfish
-        run: node tests/stockfish-bench.mjs | tee stockfish-depth-results.jsonl
+        shell: bash
+        run: |
+          set -o pipefail
+          node tests/stockfish-bench.mjs | tee stockfish-depth-results.jsonl
       - name: Upload reference benchmark results
         uses: actions/upload-artifact@v4
         with:
