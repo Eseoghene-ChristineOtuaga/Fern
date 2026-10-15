@@ -26,8 +26,12 @@ try {
   let html=''; for await (const chunk of generator.stdout) html += chunk;
   await page.goto(`http://127.0.0.1:${port}/`);
   await page.setContent(html);
-  const result = await page.waitForFunction(() => window.__FERN_BENCH__?.done, null, {timeout:240000}).then(h=>h.jsonValue());
-  if (result.error) throw new Error(result.error);
+  await page.waitForFunction(() => window.__FERN_BENCH__?.done === true, null, {timeout:240000});
+  const result = await page.evaluate(() => window.__FERN_BENCH__);
+  console.log('[benchmark result]', JSON.stringify(result));
+  if (!result || typeof result !== 'object') throw new Error('Browser benchmark returned no result object.');
+  if (result.error) throw new Error(`Browser benchmark failed: ${result.error}`);
+  if (!Array.isArray(result.results)) throw new Error(`Browser benchmark returned invalid results: ${JSON.stringify(result)}`);
   writeFileSync('stockfish19-browser-results.json', JSON.stringify(result.results,null,2)+'\n');
   for (const row of result.results) console.log(JSON.stringify(row));
   console.log(`PASS: ${result.results.length} Stockfish 19 browser depth checks`);
