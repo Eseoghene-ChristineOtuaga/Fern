@@ -1,0 +1,45 @@
+name: Fern checks
+on:
+  push:
+    branches: [feat/pgn-review-foundation, main]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Validate FEN fixtures and move legality
+        run: node tests/validate-positions.mjs
+      - name: Unit and interpretation benchmarks
+        run: npm test
+      - name: Production build
+        run: npm run build
+      - name: Install benchmark browser
+        run: npx playwright install --with-deps chromium
+      - name: Run Stockfish 19 browser benchmark
+        run: npm run bench:browser
+      - name: Upload browser benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: stockfish19-browser-results
+          path: stockfish19-browser-results.json
+      - name: Install native Stockfish reference engine
+        run: sudo apt-get update -qq && sudo apt-get install -y stockfish
+      - name: Run native reference depth benchmark
+        env:
+          STOCKFISH_BIN: /usr/games/stockfish
+        shell: bash
+        run: |
+          set -o pipefail
+          node tests/stockfish-bench.mjs | tee stockfish-depth-results.jsonl
+      - name: Upload reference benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-stockfish-depth-results
+          path: stockfish-depth-results.jsonl
