@@ -15,7 +15,7 @@ test('identifies engine first-choice move',()=>{
 test('flags large loss and supplies honest explanation',()=>{
  const r=reviewMove(pos('w',250,'d2d4'),pos('b',300),move);
  assert.equal(r.label,'Blunder');
- assert.match(explainMove(r,'d4'),/preferred d4/);
+ assert.match(explainMove(r,'d4'),/stronger engine choice was d4/);
 });
 test('mate and terminal draw evaluations',()=>{
  assert.equal(scoreForPlayer({turn:'b',result:{type:'mate',value:-3}},'w'),1);
@@ -64,4 +64,13 @@ test('WDL normalization is symmetric across side to move',()=>{
  const white={turn:'w',result:{type:'cp',value:0,wdl:[600,300,100]}};
  const black={turn:'b',result:{type:'cp',value:0,wdl:[100,300,600]}};
  assert.equal(scoreForPlayer(white,'w'),scoreForPlayer(black,'w'));
+});
+
+test('retains before and after expected scores for transparent grade explanations',()=>{
+ const before={turn:'w',result:{type:'cp',value:0,wdl:[600,300,100],bestMove:'d2d4',depth:12}};
+ const after={turn:'b',result:{type:'cp',value:0,wdl:[500,300,200],depth:12}};
+ const r=reviewMove(before,after,move);
+ assert.equal(typeof r.beforeScore,'number');
+ assert.equal(typeof r.afterScore,'number');
+ assert.ok(r.beforeScore>=r.afterScore);
 });
