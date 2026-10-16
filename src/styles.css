@@ -78,3 +78,19 @@
 
 .replay-progress-text{margin-top:6px;font-size:11px;color:#7a887a}.replay-progress{height:6px;background:#e6ede2;border-radius:999px;overflow:hidden;margin:14px 0 10px}.replay-progress span{display:block;height:100%;background:#4f7857;border-radius:999px;transition:width .25s ease}.replay-speed{display:flex;align-items:center;gap:7px;margin-bottom:12px;font-size:10px;color:#7b887c}.replay-speed>span{margin-right:3px}.replay-speed button{border:1px solid #dce5d9;background:#fff;color:#617262;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:700}.replay-speed button.active{background:#e5efe1;color:#355d3e;border-color:#cfe0ca}.replay-toggle{min-width:118px;justify-content:center}.review-move-strip button.active{scroll-margin-block:60px}.replay-feedback{min-height:138px}
 @media(max-width:560px){.replay-speed{flex-wrap:wrap}.replay-controls{display:grid;grid-template-columns:1fr 1fr}.replay-controls button{justify-content:center}}
+
+@media(max-width:900px){
+  .review-stage.replay-stage{display:block}
+  .review-stage.replay-stage .review-board{position:sticky;top:0;z-index:4;margin-bottom:14px;box-shadow:0 10px 28px rgba(38,68,45,.08)}
+  .review-stage.replay-stage .review-board .panel-heading{padding-bottom:10px}
+  .review-stage.replay-stage .review-board .board-bottom{margin-bottom:0}
+  .review-stage.replay-stage .replay-panel{position:relative;z-index:1}
+}
+@media(max-width:560px){
+  .review-stage.replay-stage .review-board{top:0;border-radius:0 0 14px 14px;margin-left:-18px;margin-right:-18px;padding:10px 18px 12px}
+  .review-stage.replay-stage .review-board .panel-heading h2{font-size:20px}
+  .review-stage.replay-stage .review-board .board-wrap{max-width:min(100%,62vh);margin:0 auto}
+  .review-stage.replay-stage .review-board .panel-heading{margin-bottom:10px}
+  .review-stage.replay-stage .review-board .icon-button{padding:8px}
+  .review-stage.replay-stage .review-board .board-bottom{font-size:9px;margin-top:8px}
+}
