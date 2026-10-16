@@ -70,7 +70,7 @@ export default function App(){
  const current=useMemo(()=>{const game=new Chess();if(loaded)loaded.moves.slice(0,index).forEach(m=>game.move(m.san));return game},[loaded,index]);
  const total=loaded?.moves.length||0;
  useEffect(()=>{if(!isReplaying||section!=='review'||reviewMode!=='replay'||!loaded)return;if(index>=total){setIsReplaying(false);return}const timer=setTimeout(()=>setIndex(i=>Math.min(total,i+1)),replaySpeed);return()=>clearTimeout(timer)},[isReplaying,section,reviewMode,loaded,total,index,replaySpeed]);
- useEffect(()=>{if(section!=='review'||reviewMode!=='replay')return;document.querySelector('.review-move-strip button.active')?.scrollIntoView({block:'nearest',behavior:'smooth'})},[index,section,reviewMode]);
+ useEffect(()=>{if(section!=='review'||reviewMode!=='replay')return;const list=document.querySelector('.review-move-strip');const active=list?.querySelector('button.active');if(!list||!active)return;const target=active.offsetTop-(list.clientHeight-active.clientHeight)/2;list.scrollTo({top:Math.max(0,target),behavior:'smooth'})},[index,section,reviewMode]);
 
  const load=(pgn)=>{try{const parsed=parsePgn(pgn);if(!parsed.moves.length)throw Error('This PGN has no moves.');stopAnalysis();setLoaded(parsed);setInput(pgn);setIndex(parsed.moves.length);setSection('study');setError('')}catch(e){setError('Could not read that PGN. Check the move notation and try again.');}};
  const isSaved=!!loaded&&saved.some(item=>item.pgn===loaded.pgn);
@@ -149,7 +149,7 @@ export default function App(){
        :<div className="review-shell">
          <div className="review-modebar"><button className={reviewMode==='replay'?'active':''} onClick={()=>{setReviewMode('replay');setIsReplaying(false)}}>Full replay</button><button className={reviewMode==='key'?'active':''} onClick={()=>{setReviewMode('key');setIsReplaying(false);const first=guidedMoments[0];if(first){setGuideIndex(0);setIndex(reviews.indexOf(first)+1)}}}>Key moments</button><div className="review-summary-inline">{Object.entries(summary.counts).map(([label,count])=><span key={label}><strong>{count}</strong> {label}</span>)}</div></div>
 
-         <div className="review-stage">
+         <div className={`review-stage ${reviewMode==='replay'?'replay-stage':''}`}>
            <section className="board-panel review-board"><div className="panel-heading"><div><span className="kicker">{reviewMode==='replay'?'FULL REPLAY':'KEY MOMENTS'}</span><h2>{(loaded.headers.White||'White')+' · '+(loaded.headers.Black||'Black')}</h2></div><button className="icon-button" title="Flip board" aria-label="Flip board" onClick={()=>setOrientation(v=>v==='white'?'black':'white')}><FlipHorizontal size={18}/></button></div><div className="board-wrap"><Chessboard options={boardOptions}/></div><div className="board-bottom"><span>{turn?(Math.ceil(index/2)+(index%2?'.':'...')+' '+turn.san):'Start'}</span><span>{index+' / '+total}</span></div></section>
 
            {reviewMode==='replay'?<section className="card replay-panel">
