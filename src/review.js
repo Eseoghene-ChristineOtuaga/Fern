@@ -40,7 +40,7 @@ export function reviewMove(before, after, move) {
   else if (loss < 0.10) label = 'Inaccuracy';
   else if (loss < 0.20) label = 'Mistake';
   else label = 'Blunder';
-  return { label, loss, model: before.result?.wdl && after.result?.wdl ? 'stockfish-wdl-v1' : 'lichess-win-chance-proxy-v1', bestMove: before.result?.bestMove || null, bestLine, searchDepth, isBest, played: move.san, player, provisional: true };
+  return { label, loss, beforeScore: best, afterScore: played, model: before.result?.wdl && after.result?.wdl ? 'stockfish-wdl-v1' : 'lichess-win-chance-proxy-v1', bestMove: before.result?.bestMove || null, bestLine, searchDepth, isBest, played: move.san, player, provisional: true };
 }
 export function summarizeReviews(reviews) {
   const valid = reviews.filter(Boolean);
@@ -53,9 +53,10 @@ export function explainMove(review, suggestedSan) {
   if (!review) return 'Analysis is not available for this move.';
   const { label, played, isBest } = review;
   if (isBest) return `${played} matches the engine's first choice at this search depth.`;
-  if (label === 'Excellent') return `${played} keeps the position close to the engine's preferred evaluation.`;
-  if (label === 'Good') return `${played} is a reasonable continuation. The engine sees only a small change in the position.`;
-  const alternative = suggestedSan && suggestedSan !== played ? ` The engine preferred ${suggestedSan} in the position before this move.` : '';
-  const severity = label === 'Blunder' ? 'a substantial' : label === 'Mistake' ? 'a noticeable' : 'a modest';
-  return `${played} leads to ${severity} drop in the estimated result for the player who moved.${alternative} Review the suggested continuation to understand the difference.`;
+  const pct = Number.isFinite(review.loss) ? Math.round(review.loss * 100) : null;
+  if (label === 'Excellent') return `${played} was very close to Stockfish's top choice${suggestedSan && suggestedSan !== played ? ` (${suggestedSan})` : ''}. The expected result changed by only about ${pct ?? 0} percentage point${pct === 1 ? '' : 's'}.`;
+  if (label === 'Good') return `${played} is a reasonable continuation${suggestedSan && suggestedSan !== played ? `, although Stockfish's top choice was ${suggestedSan}` : ''}. The expected result changed by about ${pct ?? 0} percentage points.`;
+  const alternative = suggestedSan && suggestedSan !== played ? ` Stockfish's top choice was ${suggestedSan}.` : '';
+  const severity = label === 'Blunder' ? 'substantial' : label === 'Mistake' ? 'noticeable' : 'modest';
+  return `${played} caused a ${severity} drop of about ${pct ?? 0} percentage points in the mover's expected result.${alternative}`;
 }
