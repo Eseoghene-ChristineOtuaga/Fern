@@ -10,6 +10,7 @@ export function createEngine() {
   let pending;
   let disposed = false;
   let latestInfo = null;
+  let abortStartup = null;
 
   const send = (command) => {
     if (disposed || !worker) throw new Error('Stockfish engine is unavailable.');
@@ -25,20 +26,26 @@ export function createEngine() {
     readyPromise = new Promise((resolve, reject) => {
       let timer = setTimeout(() => {
         timer = null;
+        abortStartup = null;
         reject(new Error('Stockfish took too long to start.'));
       }, 25000);
+      abortStartup = () => {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        reject(new Error('Analysis cancelled.'));
+      };
       try {
         worker = new Worker(ENGINE_PATH);
         worker.onerror = () => {
           if (disposed) return;
-          if (timer) { clearTimeout(timer); timer = null; reject(new Error('Stockfish failed to load. Check that engine files were deployed.')); }
+          if (timer) { clearTimeout(timer); timer = null; abortStartup = null; reject(new Error('Stockfish failed to load. Check that engine files were deployed.')); }
           if (pending) { pending.reject(new Error('Stockfish worker stopped unexpectedly.')); cleanup(); }
         };
         worker.onmessage = ({ data }) => {
           const lines = String(data).split(/\r?\n/);
           for (const line of lines) {
             if (line === 'uciok') { send('setoption name UCI_ShowWDL value true'); send('isready'); }
-            if (line === 'readyok' && timer) { clearTimeout(timer); timer = null; resolve(); }
+            if (line === 'readyok' && timer) { clearTimeout(timer); timer = null; abortStartup = null; resolve(); }
             if (!pending) continue;
             if (line.startsWith('info ') && /\bscore (cp|mate) -?\d+/.test(line)) {
               const depth = Number(line.match(/\bdepth (\d+)/)?.[1] || 0);
@@ -58,7 +65,7 @@ export function createEngine() {
           }
         };
         send('uci');
-      } catch (e) { if (timer) clearTimeout(timer); reject(e); }
+      } catch (e) { if (timer) clearTimeout(timer); abortStartup = null; reject(e); }
     }).catch(err => { readyPromise = null; worker?.terminate(); worker = null; throw err; });
     return readyPromise;
   }
@@ -84,6 +91,11 @@ export function createEngine() {
   }
   function dispose() {
     disposed = true;
+    if (abortStartup) {
+      const abort = abortStartup;
+      abortStartup = null;
+      abort();
+    }
     if (pending) { pending.reject(new Error('Analysis cancelled.')); cleanup(); }
     worker?.terminate(); worker = null; readyPromise = null;
   }
