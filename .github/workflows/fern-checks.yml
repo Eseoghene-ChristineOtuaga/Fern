@@ -22,6 +22,8 @@ jobs:
         run: npm run build
       - name: Install benchmark browser
         run: npx playwright install --with-deps chromium
+      - name: Run app browser smoke test
+        run: node tests/smoke-browser.mjs
       - name: Run Stockfish 19 browser benchmark
         run: npm run bench:browser
       - name: Upload browser benchmark results
