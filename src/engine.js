@@ -11,7 +11,10 @@ export function createEngine() {
   let disposed = false;
   let latestInfo = null;
 
-  const send = (command) => worker.postMessage(command);
+  const send = (command) => {
+    if (disposed || !worker) throw new Error('Stockfish engine is unavailable.');
+    worker.postMessage(command);
+  };
   const cleanup = () => {
     if (pending?.timer) clearTimeout(pending.timer);
     pending = null;
@@ -27,6 +30,7 @@ export function createEngine() {
       try {
         worker = new Worker(ENGINE_PATH);
         worker.onerror = () => {
+          if (disposed) return;
           if (timer) { clearTimeout(timer); timer = null; reject(new Error('Stockfish failed to load. Check that engine files were deployed.')); }
           if (pending) { pending.reject(new Error('Stockfish worker stopped unexpectedly.')); cleanup(); }
         };
@@ -62,6 +66,8 @@ export function createEngine() {
   async function analyse(fen, depth = 12) {
     if (disposed) throw new Error('Engine has been disposed.');
     await start();
+    // The user can cancel while the worker is still initializing.
+    if (disposed || !worker) throw new Error('Analysis cancelled.');
     if (pending) throw new Error('Engine is already analysing a position.');
     latestInfo = null;
     return new Promise((resolve, reject) => {
