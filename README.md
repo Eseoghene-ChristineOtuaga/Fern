@@ -1,8 +1,8 @@
-# Fern — Chess, understood
+# Fern — Understand to play better Chess
 
 Fern is a calm, responsive chess study app. Import a PGN, replay a game, analyse it with **Stockfish 19 Lite running locally in your browser**, and revisit the moves that changed the evaluation.
 
-## MVP features
+## MVP Features
 
 - Paste a PGN, upload a `.pgn` file, or try the sample game
 - Replay moves on an interactive chessboard; flip the board and control playback
